@@ -1,0 +1,102 @@
+###################################################################################
+# ARMA Representation and Stocks
+###################################################################################
+
+###################################################################################
+# 1.
+
+# Import the csv file Session 08.csv under the name "data"
+CocaPrices=data[,5]
+CreditSuissePrices=data[,3]
+
+KOacf=acf(CocaPrices)
+plot(KOacf, main='CocaPrices - Sample Autocorrelation Function (ACF)', ylim=c(-0.2,1))
+
+KOpacf=pacf(CocaPrices)
+plot(KOpacf, main='CocaPrices - Sample Partial Autocorrelation Function (PACF)', ylim=c(-0.2,1))
+
+
+CSacf=acf(CreditSuissePrices)
+plot(CSacf, main='CreditSuissePrices - Sample Autocorrelation Function (ACF)', ylim=c(-0.2,1))
+
+CSpacf=pacf(CreditSuissePrices)
+plot(CSpacf, main='CreditSuissePrices - Sample Partial Autocorrelation Function (PACF)', ylim=c(-0.2,1))
+
+
+###################################################################################
+# 2.
+
+CocaLogReturns=log(CocaPrices[2:length(CocaPrices)])-log(CocaPrices[1:length(CocaPrices)-1])
+CreditSuisseLogReturns=log(CreditSuissePrices[2:length(CreditSuissePrices)])-log(CreditSuissePrices[1:length(CreditSuissePrices)-1])
+
+
+rKOacf=acf(CocaLogReturns)
+plot(rKOacf, main='CocaLogReturns - Sample Autocorrelation Function (ACF)', ylim=c(-0.2,1))
+
+rKOpacf=pacf(CocaLogReturns)
+plot(rKOpacf, main='CocaLogReturns - Sample Partial Autocorrelation Function (PACF)', ylim=c(-0.2,1))
+
+
+
+rCSacf=acf(CreditSuisseLogReturns)
+plot(rCSacf, main='CreditSuisseLogReturns - Sample Autocorrelation Function (ACF)', ylim=c(-0.2,1))
+
+rCSpacf=pacf(CreditSuisseLogReturns)
+plot(rCSpacf, main='CreditSuisseLogReturns - Sample Partial Autocorrelation Function (PACF)', ylim=c(-0.2,1))
+
+
+###################################################################################
+# 3.
+
+h=c(5,10,15,20)
+out <- data.frame(NULL) 
+for (i in 1:length(h)){
+  y=Box.test(CreditSuisseLogReturns,lag = h[i])
+  out[i,1]=h[i]
+  out[i,2]=y$p.value
+  out[i,3]=y$statistic
+  out[i,4]=qchisq(0.95, df=h[i])
+}
+names(out)=c("Lags","p-value","Statistic","Critical value")
+print(out)
+
+
+
+###################################################################################
+# 4.
+
+TCS=length(CreditSuisseLogReturns)
+y=CreditSuisseLogReturns[5:TCS]
+lag1=CreditSuisseLogReturns[4:(TCS-1)]
+lag2=CreditSuisseLogReturns[3:(TCS-2)]
+lag3=CreditSuisseLogReturns[2:(TCS-3)]
+lag4=CreditSuisseLogReturns[1:(TCS-4)]
+
+ols=lm(y ~ lag1 + lag2 + lag3 + lag4)
+summary(ols)
+
+
+###################################################################################
+# 5.
+
+resids=ols$residuals
+residsacf=acf(resids)
+plot(residsacf, main='Credit Suisse Log-Returns - AR(4) Residuals - Sample ACF', ylim=c(-0.2,1))
+
+residspacf=pacf(resids)
+plot(residspacf, main='Credit Suisse Log-Returns - AR(4) Residuals - Sample PACF', ylim=c(-0.2,1))
+
+
+h=c(5,10,15,20)
+p=4
+q=0
+out <- data.frame(NULL) 
+for (i in 1:length(h)){
+  y=Box.test(resids,lag = h[i])
+  out[i,1]=h[i]
+  out[i,2]=y$p.value
+  out[i,3]=y$statistic
+  out[i,4]=qchisq(0.95, df=h[i]-p-q)
+}
+names(out)=c("Lags","p-value","Statistic","Critical value")
+print(out)

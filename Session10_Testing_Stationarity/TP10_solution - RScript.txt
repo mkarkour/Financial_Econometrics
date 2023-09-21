@@ -1,0 +1,80 @@
+######################################################################
+# Computing Critical Values
+######################################################################
+
+T=100
+N=10000
+
+epsilon=matrix(rnorm(T*N,0,1),nrow=T,ncol=N)
+
+Y=apply(epsilon,2,cumsum) #Each column is the value of the Y_(t) variable
+
+end=length(Y[,1])
+delta_Y=Y[2:end,]-Y[1:(end-1),] #compute the value of Y_(t) - Y_(t-1)
+LaggedY=Y[1:(end-1),]
+
+t_stats=NULL
+
+for(i in 1:N){
+  m=summary(lm(delta_Y[,i]~Y[1:(end-1),i]))
+  t_stats[i]=m$coefficients[2,3]
+}
+
+
+#Histogram of t-stats
+hist(t_stats,20, main='Figure 1 - Histogram of the t-statistics')
+
+#Histogram of a student t distribution for comparison
+R=rt(10000,98)
+hist(R,20, main='Figure 2 - Histogram of the Student distribution')
+
+
+#Now, calculate the quantiles of Dickey Fuller Statistic
+df_onepct=quantile(t_stats,0.01)
+df_fivepct=quantile(t_stats,0.05)
+df_tenpct=quantile(t_stats,0.10)
+df_onepct
+df_fivepct
+df_tenpct
+
+#Quantiles for student t distribution with 100-2=98 degress of freedom
+student_onepct=qt(.01,98)
+student_fivepct=qt(.05,98)
+student_tenpct=qt(.1,98)
+student_onepct
+student_fivepct
+student_tenpct
+
+#Note that it is important to use the correct critical values. 
+#Critical values from the Student ditribution might lead to wrong conclusions.
+
+######################################################################
+# Testing Non-stationarity
+######################################################################
+
+#Import the dataset
+
+i=3
+
+Data=data_monthly
+Y=Data[,i]
+
+install.packages("tseries")
+library(tseries)
+
+#Dickey-Fuller Test -> Null hypothesis: non-stationarity
+
+end=length(Y)
+delta_Y=Y[2:end]-Y[1:(end-1)]
+ols=summary(lm(delta_Y~Y[1:(end-1)]))
+t_stat=ols$coefficients[2,3]
+p_value=sum(t_stats<t_stat)/length(t_stats)
+p_value
+
+#Augmented Dickey-Fuller Test -> Null hypothesis: non-stationarity
+adf=adf.test(Y)
+adf
+
+#KPSS Test -> Null hypothesis: stationarity
+kpss=kpss.test(Y)
+kpss

@@ -1,0 +1,105 @@
+#############################################################################################
+# Preestimation Analysis
+#############################################################################################
+# 1. Identification of the orders p and q of ARMA model:
+#############################################################################################
+
+Y1=TP9$Y1
+
+Y1acf=acf(Y1)
+plot(Yacf, main='Y1 - ACF', xlim=c(0,20), ylim=c(-0.2,1), xlab='Lag', ylab='Sample Autocorrelation')
+
+Y1pacf=pacf(Y1)
+plot(Ypacf, main='Y1 - PACF', xlim=c(0,20), ylim=c(-0.2,1), xlab='Lag', ylab='Sample Partial Autocorrelation')
+
+#############################################################################################
+# 2. Estimates of the AR(1) coefficients:
+#############################################################################################
+
+Y=Y1[2:length(Y1)]
+Lag1=Y1[1:(length(Y1)-1)]
+
+AR1=lm(Y~Lag1)
+summary(AR1)
+
+# Results of the Ljung-Box test on the AR(1) residuals:
+
+resids=AR1$residuals
+h=c(5,10,15,20)
+out <- data.frame(NULL) 
+for (i in 1:length(h)){
+  y=Box.test(resids,lag = h[i], type = c("Box-Pierce", "Ljung-Box"), fitdf = 0)
+  out[i,1]=h[i]
+  out[i,2]=y$p.value
+  out[i,3]=y$statistic
+  out[i,4]=qchisq(0.95, df=h[i])
+}
+names(out)=c("Lags","p-value","Statistic","Critical Value")
+print(out)
+
+#############################################################################################
+# 3. Results of the ARCH test on AR(1) residuals:
+#############################################################################################
+
+resids2=resids^2
+h=c(5,10,15)
+outarch <- data.frame(NULL) 
+for (i in 1:length(h)){
+  y=Box.test(resids2,lag = h[i], type = c("Box-Pierce", "Ljung-Box"), fitdf = 0)
+  outarch[i,1]=h[i]
+  outarch[i,2]=y$p.value
+  outarch[i,3]=y$statistic
+  outarch[i,4]=qchisq(0.95, df=h[i])
+}
+names(outarch)=c("Lags","p-value","Statistic","Critical Value")
+print(outarch)
+
+#############################################################################################
+# 4. Identification of orders p2 and q2 of a GARCH model:
+#############################################################################################
+
+resids2acf=acf(resids2)
+plot(resids2acf, main='Y1 Squared residuals - ACF', xlim=c(0,20), ylim=c(-0.2,1), xlab='Lag', ylab='Sample Autocorrelation')
+
+resids2pacf=pacf(resids2)
+plot(resids2acf, main='Y1 Squared residuals - PACF', xlim=c(0,20), ylim=c(-0.2,1), xlab='Lag', ylab='Sample Partial Autocorrelation')
+
+#############################################################################################
+# Prameter Estimation of a GARCH(0,1) model
+#############################################################################################
+
+# Install package tseries
+install.packages("tseries")
+library(tseries)
+
+Garch=garch(resids, order=c(1,0))
+Garch$coef
+residsGarch=Garch$residuals[2:length(Garch$residuals)]
+
+#############################################################################################
+# Postestimation Analysis
+#############################################################################################
+
+residsGarch2=residsGarch^2
+h=c(5,10,15)
+outGarch <- data.frame(NULL) 
+for (i in 1:length(h)){
+  y=Box.test(residsGarch2,lag = h[i], type = c("Box-Pierce", "Ljung-Box"), fitdf = 0)
+  outGarch[i,1]=h[i]
+  outGarch[i,2]=y$p.value
+  outGarch[i,3]=y$statistic
+  outGarch[i,4]=qchisq(0.95, df=h[i])
+}
+names(outGarch)=c("Lags","p-value","Statistic","Critical Value")
+print(outGarch)
+
+# ACF and PACF of squared GARCH residuals:
+
+residsGarch2acf=acf(residsGarch2)
+plot(residsGarch2acf, main='Y1 Squared GARCH residuals - ACF', xlim=c(0,20), ylim=c(-0.2,1), xlab='Lag', ylab='Sample Autocorrelation')
+
+residsGarch2pacf=pacf(residsGarch2)
+plot(residsGarch2pacf, main='Y1 Squared GARCH residuals - PACF', xlim=c(0,20), ylim=c(-0.2,1), xlab='Lag', ylab='Sample Partial Autocorrelation')
+
+#The tests show that the AR(1)-GARCH(0,1) model sufficiently explains the heteroscedasticity. (We don't need to use a GARCH(1,1))
+#Remark: series Y1 has been simulated with an AR(1)-GARCH(2,3)
